@@ -1,0 +1,7 @@
+name = Eurostar Products
+description = Functionality to add the external data as product.
+core = 7.x
+
+package = Eurostar
+dependencies[] = commerce_product
+dependencies[] = eurostar_radios_list

@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ *
+ *
+ */
+
+/*
+ * Implements hook_element_info().
+ *
+ */
+function eurostar_radios_list_element_info() {
+  $types['radios_list'] = array(
+    '#input' => TRUE,
+    '#return_value' => TRUE,
+    // '#process' => array('form_process_radios_list', 'ajax_process_form'),
+    '#process' => array('form_process_radios_list'),
+    '#theme' => 'radios_list',
+    '#theme_wrappers' => array('form_element'),
+    '#title_display' => 'after',
+  );
+ 
+  return $types;
+}
+/**
+ *  Implements hook_theme().
+ */
+function eurostar_radios_list_theme($existing, $type, $theme, $path) {
+  return array(
+    'radios_list' => array(
+      'render element' => 'element',
+      //'file' => 'radios_list.theme.inc',
+    ),
+
+  );
+}
+/**
+ *  Value callback.
+ *
+ */
+function form_type_radio_list_value() {
+
+}
+
+/**
+ *  Theme implementation for radios_list.
+ *
+ */
+
+function theme_radios_list($variables) {
+print_r($variables);exit;
+  $form = $variables['form'];
+  print_r($form);exit;
+}
+
+/**
+ *  Process function for radios list element
+ *
+ */
+function form_process_radios_list($element) {
+  $header = $element['#title'];
+  $options = $element['#options'];
+  $name = $element['#name'];
+  $input_array = $element['#input'];
+  $row = 1;
+  foreach ($options as $index => $option) {
+    $position = 0;
+    
+    foreach ($option as $key => $value) {
+      if (in_array($position, $input_array)) {
+        $element[$name]['radio_' . $row][$key] = array(
+          '#type' => 'radio',
+          '#title' => $value,
+        );
+      }
+      else {
+        $element[$name]['markup_' . $row][$key] = array(
+          '#markup' => $value,
+        );
+      } 
+      $position ++;
+    }
+    $row ++;
+  }
+
+  return $element;
+}

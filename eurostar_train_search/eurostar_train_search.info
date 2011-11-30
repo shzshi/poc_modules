@@ -1,0 +1,6 @@
+name = Eurostar Train search
+description = Search functionality for the trains in Eurostar
+core = 7.x
+
+package = Eurostar
+;dependencies[] = 

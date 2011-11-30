@@ -1,0 +1,49 @@
+<?php
+
+/*
+ * @file
+ *
+ */
+
+/*
+ * Implementation of hook_block_info.
+ *
+ */
+function eurostar_train_recent_search_block_info() {
+ $blocks['eurostar_train_recent_search'] = array(
+    'info' => t('Recent search'), 
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/*
+ * Implementation of hook_block_view.
+ *
+ */
+function eurostar_train_recent_search_block_view() {
+ $blocks['eurostar_train_recent_search'] = array(
+    'info' => t('Recent search'), 
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Helper function to set recent search in cache
+ *
+ *
+ */
+function eurostar_train_recent_search_set($param) {
+  $token = _get_token($param);
+
+
+
+}
+
+function _get_token($param) {
+  $string = implode("#", $param);
+  return ;
+}

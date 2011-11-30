@@ -1,0 +1,5 @@
+name = Eurostar train recent search
+description = Save and display recent train search
+core = 7.x
+package = Eurostar
+dependencies[] = eurostar_train_search

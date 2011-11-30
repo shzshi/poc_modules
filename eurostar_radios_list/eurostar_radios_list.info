@@ -1,0 +1,5 @@
+name = Eurostar "Radios list" form element
+description = Extend the Drupal radios element to add it in multiple rows (e.g. 4x4).
+core = 7.x
+
+package = Eurostar

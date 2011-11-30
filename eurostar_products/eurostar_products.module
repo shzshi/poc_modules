@@ -1,0 +1,174 @@
+<?php
+
+/**
+ * @file
+ *
+ *
+ */
+
+/*
+ * Implementation of hook_menu.
+ *
+ */
+
+function eurostar_products_menu() {
+
+  $items['eurostar-products/test'] = array(
+    'title' => t('Train Search form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('eurostar_products_form'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['eurostar-products/list/test'] = array(
+    'title' => t('Train Search form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('eurostar_products_list_form'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ *  Custom form for the train search
+ *
+ */
+function eurostar_products_form() {
+  $options = array(
+    'product_1' => '79.00',
+    'product_2' => '90.00',
+
+  );
+  $form['product_id'] = array(
+    '#title' => t('Price'),
+    '#type' => 'radios',
+    '#options' => $options
+  );
+  $form['tickets'] = array(
+    '#title' => t('Price'),
+    '#type' => 'radios',
+    '#options' => $options
+  );
+
+  $product_1 = array(
+    'price' => '79.00',
+    'title' => 'London St pancras to Paris Gare du Nord',
+    'field_train_depart' => time(),
+    'field_train_arrival' => time()+7000,
+    'field_train_arrival' => 'Standard',
+    'members' => array('adults' => 2, 'children' => 1),
+  );
+  $product_2 = array('price' => '90.00') + $product_1;
+
+  $form['product_1'] = array(
+    '#type' => 'value',
+    '#value' => $product_1
+   );
+
+  $form['product_2'] = array(
+    '#type' => 'value',
+    '#value' => $product_2 
+   );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Get trains'),
+  );
+
+  return $form;
+}
+/**
+ *
+ *
+ *
+ */
+
+function eurostar_products_form_validate($form, &$form_state) {
+  // validate all BRs here
+  
+}
+/**
+ *
+ *
+ *
+ */
+
+function eurostar_products_form_submit($form, &$form_state) {
+  global $user;
+  $uid = $user->uid;
+  $form_values = $form_state['values'];
+  $product_ref = $form_values['product_id'];
+  $new_product = eurostar_product_add_product('train_ticket', $form_values[$product_ref], $uid);
+  $order = eurostar_product_add_order($new_product, $uid);
+}
+/**
+ * Helper function to create products programatically
+ *
+ *
+ */
+ 
+function eurostar_product_add_product($type = 'train_ticket', $product, $uid = '') {
+  $product = (object)$product; 
+  // $type = 'product';
+  $new_product = commerce_product_new($type);
+  $ticket_hash = 'TRAIN_TICKET_'.time();
+  $new_product->sku = empty($sku) ?  $ticket_hash: $sku;
+  $new_product->title = empty($product->title) ? $ticket_hash : $product->title;
+  $new_product->uid = $uid;
+  $new_product->commerce_price[LANGUAGE_NONE][0]['amount'] = ($product->price < 0) ? rand(2, 500) : $product->price;
+  // DOTO: need to pass it from product.
+  $new_product->commerce_price[LANGUAGE_NONE][0]['currency_code'] = 'USD';
+  commerce_product_save($new_product);
+
+  return $new_product;
+}
+
+/**
+ * Helper function to create order programatically
+ *
+ *
+ */
+ 
+function eurostar_product_add_order($new_product, $uid = '') {
+$quantity = 1;
+
+  // Create a new shopping cart order by adding the products to it.
+  if ($product = commerce_product_load($new_product->product_id)) {
+    $line_item = commerce_product_line_item_new($product, $quantity);
+    $line_item = commerce_cart_product_add($uid, $line_item);
+  }
+  // Load the order for returning it.
+  $order = commerce_cart_order_load($uid);
+/*
+  // If the order should be in a different status, update it.
+  if ($status <> 'cart') {
+    $order = commerce_order_status_update($order, $status, TRUE);
+  }
+*/
+  commerce_order_save($order);
+
+  return $order;
+}
+
+
+/**
+ *
+ *
+ */
+function eurostar_products_list_form() {
+  $form['ticket_details'] = array(
+    '#type' => 'radios_list',
+    '#title' => array('Depart', 'Non-flexible', 'Semi-flexible'),
+    '#options' => array(
+      array('05:20', 'TICKET1'=>'70.00', 'TICKET2'=>'90.30',),
+      array('07:20', 'TICKET3'=>'71.00', 'TICKET4'=>'91.30',),
+      array('09:20', 'TICKET5'=>'72.00', 'TICKET6'=>'92.30',),
+      array('11:20', 'TICKET7'=>'73.00', 'TICKET8'=>'93.30',),
+      array('13:20', 'TICKET9'=>'74.00', 'TICKET10'=>'94.30',),
+    ),
+    '#input' => array(1, 2),
+  );
+  return $form;
+}
