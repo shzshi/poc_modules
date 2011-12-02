@@ -10,6 +10,7 @@
  * Implementation of hook_menu.
  *
  */
+define('EUROSTAR_TRAIN_SEARCH_MAX_HISTORY', 5);
 
 function eurostar_train_search_menu() {
   $items['eurostar-train-search/autocoplete/from'] = array(
@@ -37,20 +38,60 @@ function eurostar_train_search_menu() {
   return $items;
 }
 
+/* 
+ *  Implements hook_block_info().
+ *
+ */
+function eurostar_train_search_block_info() {
+  $blocks['eurostar_train_search'] = array(
+    'info' => t('Eurostar Train Search form'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+ $blocks['eurostar_train_search_history'] = array(
+    'info' => t('Recent Train search'), 
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/**
+ *  Implements hook_block_view().
+ *
+ *
+ */
+function eurostar_train_search_block_view($delta = ''){
+  $block = array();
+
+  switch ($delta) {
+    case 'eurostar_train_search':
+      $block['subject'] = '';
+      $block['content'] = drupal_get_form('eurostar_train_search_form');
+      break;
+    case 'eurostar_train_search_history':
+      $block['subject'] = '';
+      $block['content'] = eurostar_train_search_get_histroy();
+  }
+  return $block;
+}
+
 /**
  *  Custom form for the train search
  *
  */
 function eurostar_train_search_form() {
+  $default_details = eurostar_train_search_get_latest_default(eurostar_cache_get('train_search'));
   $form['from'] = array(
     '#title' => t('From'),
     '#type' => 'textfield',
+    '#default_value' => $default_details['from'],
     // Not for scenario 1
     // '#autocomplete_path' => 'eurostar-train-search/autocoplete/from'
    );
   $form['to'] = array(
     '#title' => t('To'),
     '#type' => 'textfield',
+    '#default_value' => $default_details['to'],
     // Not for scenario 1
     // '#autocomplete_path' => 'eurostar-train-search/autocoplete/to'
   );
@@ -58,28 +99,31 @@ function eurostar_train_search_form() {
   $form['hotel'] = array(
     '#type' => 'checkbox',
     '#title' => t('Add a hotel and save money'),
+    '#default_value' => $default_details['hotel'],
   );
   $form['depart'] = array(
     '#title' => t('Depart'),
     '#type' => 'textfield',
+    '#default_value' => $default_details['depart'],
   );
   $form['return'] = array(
     '#title' => t('Return'),
     '#type' => 'textfield',
+    '#default_value' => $default_details['return'],
   );
   $form['adult'] = array(
     '#title' => t('Adults'),
     '#type' => 'textfield',
     '#size' => 2,
     '#description' => t('(25/59 yrs)'),
-    '#default_value' => 1,
+    '#default_value' => $default_details['adult'] ? $default_details['adult'] : 1,
   );
   $form['children'] = array(
     '#title' => t('Children'),
     '#type' => 'textfield',
     '#size' => 2,
     '#description' => t('(4/11 yrs)'),
-    '#default_value' => 0,
+    '#default_value' => $default_details['children'] ? $default_details['children'] : 0,
   );
 
   $form['youths'] = array(
@@ -87,7 +131,7 @@ function eurostar_train_search_form() {
     '#type' => 'textfield',
     '#size' => 2,
     '#description' => t('(12/25 yrs)'),
-    '#default_value' => 0,
+    '#default_value' => $default_details['youths'] ? $default_details['youths'] : 0,
   );
 
   $form['seniors'] = array(
@@ -95,7 +139,7 @@ function eurostar_train_search_form() {
     '#type' => 'textfield',
     '#size' => 2,
     '#description' => t('(60+ yrs)'),
-    '#default_value' => 0,
+    '#default_value' => $default_details['seniors'] ? $default_details['seniors'] : 0,
   );
   $form['kids_tips'] = array(
     '#value' => t('Kids under 4 can travel free'),
@@ -125,13 +169,13 @@ function eurostar_train_search_form_validate($form, &$form_state) {
 
 function eurostar_train_search_form_submit($form, &$form_state) {
   $form_values = $form_state['values'];
-  print_r($form_values);exit;
+
   unset($form_values['submit']);
   unset($form_values['form_build_id']);
   unset($form_values['form_token']);
   unset($form_values['form_id']);
   unset($form_values['op']);
-  
+  eurostar_cache_set($form_values, 'train_search');
   // Call the search API to get list of train details.
  
 }
@@ -144,4 +188,47 @@ function eurostar_train_search_autocomplete_from($string = '') {
   $matches['key-4'] = 'value-4';
 
   drupal_json_output($matches);
+}
+
+function eurostar_train_search_get_latest_default($list) {
+  if (isset($list)) {
+    foreach($list as $key => $defaults) {
+      return $defaults;
+    }
+  }
+}
+
+function eurostar_train_search_get_histroy() {
+  $history = eurostar_cache_get('train_search');
+  if (!is_array($history)) {
+    return ;
+  }
+  $header = array(t('From'), t('To'), t('Departing'), t('Returning'), t('Passengers'),t('Action')); 
+  foreach ($history as $item) {
+    $row = array();
+    foreach($item as $element => $data) {
+      switch ($element) {
+        case 'from':
+        case 'to':
+        case 'depart':
+        case 'return':
+          $row[$element] = $data;
+          break;
+        case 'adult':
+        case 'children':
+        case 'youths':
+        case 'seniors':
+          if ($data) {
+            $row['passengers'] .= $data.' x ' . $element . '<br />';
+          }
+          break;
+      }
+    }
+    $rows[] = $row;
+  }
+  foreach ($rows as $key => $val) {
+    $body[] = array($val['from'], $val['to'], $val['depart'], $val['return'], $val['passengers'], l(t('View all fares'), '<front>'));
+  }
+
+  return theme('table', array('header' => $header, 'rows' => $body));
 }

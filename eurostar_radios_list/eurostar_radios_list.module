@@ -2,6 +2,25 @@
 
 /**
  * @file
+ *  Custom form elements with array of radio boxes.
+ *
+ *
+ *  This element provides additional attributes to support table display
+ *
+ *
+ *  Example:
+ *  $form['ticket_details'] = array(
+ *    '#type' => 'radios_list',
+ *    '#title' => t('Train details'),
+ *    '#header' => array(t('Depart'), t('Arrive'), t('Duration'), t('Changes'), t('Standard'), t('Standard premier'), t('Business premier')),
+ *    '#options' => array(
+ *      array('05:20', '08:20', '01.20h', 'Direct', 'TICKET1'=>'79.00', 'TICKET2'=>'79.00', 'TICKET3'=>'79.00',),
+ *      array('06:55', '10:00', '01.20h', 'Direct', 'TICKET4'=>'93.00', 'TICKET5'=>'93.00', 'TICKET6'=>'93.00',),
+ *      array('08:26', '14:15', '01.25h', 'Direct', 'TICKET10'=>'72.00', 'TICKET5'=>'72.00', 'TICKET6'=>'72.00',),
+ *    ),
+ *    '#input' => array(4, 5, 6), // index of the fields that need to be radio
+ *  );
+ *
  *
  *
  */
@@ -13,16 +32,14 @@
 function eurostar_radios_list_element_info() {
   $types['radios_list'] = array(
     '#input' => TRUE,
-    '#return_value' => TRUE,
-    // '#process' => array('form_process_radios_list', 'ajax_process_form'),
     '#process' => array('form_process_radios_list'),
-    '#theme' => 'radios_list',
-    '#theme_wrappers' => array('form_element'),
+    '#theme_wrappers' => array('radios_list'),
     '#title_display' => 'after',
   );
  
   return $types;
 }
+
 /**
  *  Implements hook_theme().
  */
@@ -32,7 +49,12 @@ function eurostar_radios_list_theme($existing, $type, $theme, $path) {
       'render element' => 'element',
       //'file' => 'radios_list.theme.inc',
     ),
-
+    'radios_list_line' => array(
+      'render element' => 'element',
+    ),
+    'radios_list_item' => array(
+      'render element' => 'element',
+    ),
   );
 }
 /**
@@ -44,22 +66,12 @@ function form_type_radio_list_value() {
 }
 
 /**
- *  Theme implementation for radios_list.
- *
- */
-
-function theme_radios_list($variables) {
-print_r($variables);exit;
-  $form = $variables['form'];
-  print_r($form);exit;
-}
-
-/**
  *  Process function for radios list element
  *
  */
+/*
 function form_process_radios_list($element) {
-  $header = $element['#title'];
+  $header = $element['#header'];
   $options = $element['#options'];
   $name = $element['#name'];
   $input_array = $element['#input'];
@@ -85,4 +97,136 @@ function form_process_radios_list($element) {
   }
 
   return $element;
+}
+
+*/
+
+/**
+ * Roll out a single radios element to a list of radios,
+ * using the options array as index.
+ */
+function form_process_radios_list($element) {
+  if (count($element['#options']) > 0) {
+    $weight = 0;
+    $input = array();
+    if (is_array($element['#input'])) {
+      $input = $element['#input'];
+    }
+    foreach ($element['#options'] as $index =>$items) {
+      $element[$index] = array( 
+        '#type' => 'item',
+        '#tree' => TRUE,
+        '#theme_wrappers' => array('radios_list_line'),
+      );
+      foreach($items as $key => $choice) {
+      // Maintain order of options as defined in #options, in case the element
+      // defines custom option sub-elements, but does not define all option
+      // sub-elements.
+      $weight += 0.001;
+      $element[$index] += array($key => array());
+      // Generate the parents as the autogenerator does, so we will have a
+      // unique id for each radio button.
+      $parents_for_id = array_merge($element['#parents'], array($index, $key));
+        if (eurostar_radios_list_in_array($key, $input, $items)) {
+          $element[$index][$key] += array(
+          '#type' => 'radio',
+          '#title' => $choice,
+          // The key is sanitized in drupal_attributes() during output from the
+          // theme function.
+          '#return_value' => $key,
+          '#default_value' => isset($element['#default_value']) ? $element['#default_value'] : NULL,
+          '#attributes' => $element['#attributes'],
+          '#parents' => $element['#parents'],
+          '#theme_wrappers' => array('form_element', 'radios_list_item'),
+          '#id' => drupal_html_id('edit-' . implode('-', $parents_for_id)),
+          '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+          '#weight' => $weight,
+        );
+        }
+        else {
+        $element[$index][$key] += array(
+          '#markup' => $choice,
+          '#attributes' => $element['#attributes'],
+          '#parents' => $element['#parents'],
+          '#theme_wrappers' => array('form_element', 'radios_list_item'),
+          '#id' => drupal_html_id('edit-' . implode('-', $parents_for_id)),
+          '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+          '#weight' => $weight,
+        );
+        }
+      }
+    }
+  }
+  return $element;
+}
+
+function eurostar_radios_list_in_array($needle, $array, $key_array) {
+  $keys = array_keys($key_array);
+  return in_array(array_search($needle, $keys, TRUE), $array);
+}
+
+
+/**
+ * Returns HTML for a set of radio button form elements.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *     Properties used: #title, #value, #options, #description, #required,
+ *     #attributes, #children.
+ *
+ * @ingroup themeable
+ */
+function theme_radios_list($variables) {
+  $element = $variables['element'];
+  $attributes = array();
+  $output = '';
+
+  if (isset($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  $attributes['class'] = 'form-radios-list';
+  if (!empty($element['#attributes']['class'])) {
+    $attributes['class'] .= ' ' . implode(' ', $element['#attributes']['class']);
+  }
+  if (is_array($element['#header'])) {
+    $header = '<thead>';
+    foreach($element['#header'] as $title) {
+      $header .= _theme_table_cell($title, TRUE);
+    }
+    $header .= '</thead>';
+  }
+  if (!empty($element['#children'])) {
+    $output .= '<table' . drupal_attributes($attributes) . '>';
+    $output .= $header;
+    $output .= '<tbody>' . $element['#children'] . '</tbody>';
+    $output .= '</table>';
+  }
+  return $output;
+}
+
+function theme_radios_list_line($variables) {
+  $element = $variables['element'];
+  $attributes = array();
+  if (isset($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  $attributes['class'] = 'form-radios-list-line';
+  if (!empty($element['#attributes']['class'])) {
+    $attributes['class'] .= ' ' . implode(' ', $element['#attributes']['class']);
+  }
+  return '<tr' . drupal_attributes($attributes) . '>' . (!empty($element['#children']) ? $element['#children'] : '') . '</tr>';
+}
+function theme_radios_list_item($variables) {
+
+  $element = $variables['element'];
+  $attributes = array();
+  if (isset($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  $attributes['class'] = 'form-radios-list-item';
+  if (!empty($element['#attributes']['class'])) {
+    $attributes['class'] .= ' ' . implode(' ', $element['#attributes']['class']);
+  }
+  return '<td' . drupal_attributes($attributes) . '>' . (!empty($element['#children']) ? $element['#children'] : '') . '</td>';
 }

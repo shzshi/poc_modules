@@ -1,0 +1,65 @@
+<?php
+
+/*
+ * @file
+ *
+ */
+
+
+
+/**
+ * Helper function to set recent search in cache
+ *
+ *
+ */
+function eurostar_cache_set($param, $needle, $engine='cookie') {
+  $param = $param + array('#weight' => time());
+  $cache = eurostar_cache_get($needle, $engine);
+  $token = _get_token($param);print_r($cache);
+  // If there is no cookie with key $needle
+  if (!$cache) {
+    $cache = array($token => $param);
+  }
+  else {
+    $cache[$token] = $param;
+  }
+  
+  array_slice($cache, EUROSTAR_TRAIN_SEARCH_MAX_HISTORY);
+  return _eurostar_cache_set(serialize($cache), $needle, $engine);
+}
+
+function _get_token($param) {
+  $string = implode("#", $param);
+  return $string;
+}
+
+function _eurostar_cache_set($data, $needle, $engine='cookie') {
+  switch($engine) {
+    case 'cookie':
+      setcookie($needle, $data);
+      break;
+  }
+  return TRUE;
+}
+
+function eurostar_cache_get_histroy() {
+
+}
+
+function eurostar_cache_get($needle='', $engine='cookie') {
+  switch($engine) {
+    case 'cookie':
+      if (isset($_COOKIE[$needle])) {
+        $return = unserialize($_COOKIE[$needle]);
+      }
+      else {
+        $return = FALSE;
+      }     
+      break;
+    case 'session':
+      $variable = '_COOKIE';
+      break;
+  }
+  return $return;
+}
+

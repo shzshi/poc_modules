@@ -160,15 +160,16 @@ $quantity = 1;
 function eurostar_products_list_form() {
   $form['ticket_details'] = array(
     '#type' => 'radios_list',
-    '#title' => array('Depart', 'Non-flexible', 'Semi-flexible'),
+    '#title' => t('Train details'),
+    '#header' => array(t('Depart'), t('Arrive'), t('Duration'), t('Changes'), t('Standard'), t('Standard premier'), t('Business premier')),
     '#options' => array(
-      array('05:20', 'TICKET1'=>'70.00', 'TICKET2'=>'90.30',),
-      array('07:20', 'TICKET3'=>'71.00', 'TICKET4'=>'91.30',),
-      array('09:20', 'TICKET5'=>'72.00', 'TICKET6'=>'92.30',),
-      array('11:20', 'TICKET7'=>'73.00', 'TICKET8'=>'93.30',),
-      array('13:20', 'TICKET9'=>'74.00', 'TICKET10'=>'94.30',),
+      array('05:20', '08:20', '01.20h', 'Direct', 'TICKET1'=>'79.00', 'TICKET2'=>'79.00', 'TICKET3'=>'79.00',),
+      array('06:55', '10:00', '01.20h', 'Direct', 'TICKET4'=>'93.00', 'TICKET5'=>'93.00', 'TICKET6'=>'93.00',),
+      array('07:27', '12:40', '01.20h', 'Direct', 'TICKET7'=>'83.00<br /><span> 4 seats left</span>', 'TICKET2'=>'83.00', 'TICKET3'=>'83.00',),
+      array('08:26', '14:15', '01.25h', 'Direct', 'TICKET10'=>'72.00', 'TICKET5'=>'72.00', 'TICKET6'=>'72.00',),
     ),
-    '#input' => array(1, 2),
+    '#input' => array(4, 5, 6),
   );
+
   return $form;
 }
