@@ -176,6 +176,7 @@ function eurostar_train_search_form_submit($form, &$form_state) {
   unset($form_values['form_id']);
   unset($form_values['op']);
   eurostar_cache_set($form_values, 'train_search');
+  drupal_goto('eurostar-products/list/test');
   // Call the search API to get list of train details.
  
 }
