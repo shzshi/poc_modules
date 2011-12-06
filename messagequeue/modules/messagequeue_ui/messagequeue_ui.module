@@ -1,0 +1,154 @@
+<?php
+/**
+ * @file
+ * Message Queue UI provides an admin interface to manage message-queue pools.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function messagequeue_ui_permission() {
+  return array(
+    'view messagequeue configuration' => array(
+      'title' => t('View messagequeue configuration'), 
+      'description' => t('View the configuration of the message-queue module and its pools.'),
+      'restrict access' => TRUE,
+    ),
+    'configure messagequeue' => array(
+      'title' => t('Configure messagequeue'), 
+      'description' => t('Change the configuration of the message-queue module and its pools.'),
+      'restrict access' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_element_info().
+ */
+function messagequeue_element_info() {
+  return array(
+    'messagequeue_pool' => array(
+      '#theme' => 'messagequeue_pool',
+      '#pre_render' => array('messagequeue_pool_prerender'),
+      '#process' => array('messagequeue_pool_process'),
+      // #pool should be a DrupalMessageQueuePool.
+      '#pool' => NULL,
+      // Where these attributes are undefined, they will be provided by the
+      // values defined by the DrupalMessageQueuePool in #pool.
+      '#machine_name' => '',
+      '#name' => '',
+    ),
+
+    'messagequeue_broker' => array(
+      '#theme' => 'messagequeue_broker',
+      '#pre_render' => array('messagequeue_broker_prerender'),
+      // Where these attributes are undefined, they will be provided by the
+      // values defined by the DrupalMessageQueueBroker in #broker.
+      '#uri' => '',
+      '#username' => '',
+      '#password' => array(),
+    ),
+  );
+}
+
+/**
+ * Pool element pre-render function.
+ * Extracts the data from the pool object into the local themeing array, and
+ * adds a render array of broker elements.
+ */
+function messagequeue_pool_prerender($element) {
+  $pool = $element['#pool'];
+
+  // Populate the defaults.
+  $element['#machine_name'] = $element['#machine_name'] ?$element['#machine_name'] : $pool->machine_name;
+  $element['#name'] = $element['#name'] ?$element['#name'] : $pool->machine_name;
+  $element['brokers'] = array();
+
+  foreach ($pool->getBrokers() as $broker) {
+    $element['brokers'][] = array(
+      '#type' => 'messagequeue_broker',
+      '#broker' => $broker,
+    );
+  }
+
+  return $element;
+}
+
+/**
+ * Broker element pre-render function.
+ * Extracts the data from the broker object into the local themeing array.
+ */
+function messagequeue_broker_prerender($element) {
+  $broker = $element['#broker'];
+
+  // Populate the defaults.
+  $element['#uri'] = $element['#uri']           ? $element['#uri'] : $broker->uri;
+  $element['#username'] = $element['#username'] ? $element['#username'] : $broker->username;
+  $element['#password'] = $element['#password'] ? $element['#password'] : $broker->password;
+
+  return $element;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function messagequeue_ui_theme() {
+  $path = drupal_get_path('module', 'messagequeue_ui');
+
+  return array(
+    'messagequeue_pool' => array(
+      'render element' => 'pool',
+      'template' => 'messagequeue_pool',
+      'file' => 'messagequeue_ui.theme.inc',
+      'path' => "{$path}/templates",
+    ),
+
+    'messagequeue_broker' => array(
+      'render element' => 'broker',
+      'template' => 'messagequeue_broker',
+      'file' => 'messagequeue_ui.theme.inc',
+      'path' => "{$path}/templates",
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function messagequeue_ui_menu() {
+  $items = array();
+
+  $items['admin/config/messagequeue'] = array(
+    'title' => 'Message Queue',
+    'page callback' => 'messagequeue_ui_manage_pools_page',
+    'access arguments' => array('view messagequeue configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'messagequeue.admin.inc',
+  );
+  $items['admin/config/messagequeue/pools'] = array(
+    'title' => 'Pools',
+    'page callback' => 'messagequeue_ui_manage_pools_page',
+    'access arguments' => array('view messagequeue configuration'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'file' => 'messagequeue.admin.inc',
+    'weight' => -10,
+  );
+  $items['admin/config/messagequeue/pools/%messagequeue_pool'] = array(
+    'title' => '@queuename Pool',
+    'page callback' => 'messagequeue_ui_add_pool_page',
+    'access arguments' => array('configure messagequeue configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'messagequeue.admin.inc',
+    'weight' => -10,
+  );
+  $items['admin/config/messagequeue/pools/new'] = array(
+    'title' => 'Pools',
+    'page callback' => 'messagequeue_ui_add_pool_page',
+    'access arguments' => array('configure messagequeue configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'messagequeue.admin.inc',
+    'weight' => -10,
+  );
+
+  return $items;
+}

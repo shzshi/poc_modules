@@ -1,0 +1,10 @@
+name = Message Queue
+description = Integrate Drupal with an external STOMP or AMQP message queue, such as ActiveMQ.
+core = 7.x
+package = Message Queue
+dependencies[] = ctools
+files[] = messagequeue.class.inc
+
+; Transport implementations
+files[] = transport/stomp.class.inc
+;files[] = transport/amqp.class.inc

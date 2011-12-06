@@ -1,0 +1,5 @@
+name = Message Queue UI
+description = Admin interface to manage message-queue pools.
+core = 7.x
+package = Message Queue
+dependencies[] = messagequeue

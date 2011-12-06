@@ -1,0 +1,5 @@
+name = TEST export of a messagequeue pool.
+description = Export objects from CTools
+dependencies[] = messagequeue
+package = Message Queue
+core = 7.x

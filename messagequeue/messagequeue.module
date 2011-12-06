@@ -1,0 +1,155 @@
+<?php
+/**
+ * @file
+ * Message Queue module integrates Drupal with an external STOMP or AMQP
+ * message queue, such as ActiveMQ.
+ *
+ * Message queue pool:
+ * - machine name
+ * - distribution
+ * - brokers
+ *
+ * Message queue broker:
+ * - transport?
+ * - uri
+ * - username
+ * - password
+ */
+
+// Message broker is chosen using a sharding algorithm from all the active brokers in the pool.
+define('MESSAGEQUEUE_DISTRIBUTION_SHARD', 0);
+
+// Message broker is chosen using round-robin technique around all the active brokers in the pool.
+define('MESSAGEQUEUE_DISTRIBUTION_ROUNDROBIN', 1);
+
+// A random message broker is chosen from all the active brokers in the pool.
+define('MESSAGEQUEUE_DISTRIBUTION_RANDOM', 2);
+
+// Message brokers are tried in order of their weight in the pool.
+define('MESSAGEQUEUE_DISTRIBUTION_LINEAR', 3);
+
+// Default distribution is round-robin.
+define('MESSAGEQUEUE_DEFAULT_DISTRIBUTION', MESSAGEQUEUE_DISTRIBUTION_ROUNDROBIN);
+
+
+function messagequeue_init() {
+  if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) return;
+
+  // $pool = messagequeue_pool_load('eurostar');
+  // $msg = 'foo'; // Custom message format.
+  // $pool->send('/queue/foo', $msg);
+  
+
+  // GET ALL POOLS.
+  // $pools = messagequeue_pool_load_all();
+  // drupal_set_message('pools: '.print_r($pools,true));
+
+
+  // $pool = messagequeue_get_test_pool();
+  // messagequeue_pool_save($pool);
+  // 
+  // $pool = messagequeue_pool_load('eurostar');
+  // drupal_set_message('loaded pool: ' . print_r($pool,true));
+
+}
+
+/**
+ * Get all the message queue pools.
+ * @TODO: implement as exportables.
+ */
+function messagequeue_get_test_pool() {
+  $x = new DrupalMessageQueuePool;
+  $x->machine_name = 'eurostar';
+  $x->distribution = MESSAGEQUEUE_DISTRIBUTION_SHARD;
+  //$y = new DrupalMessageQueueStompBroker('tcp://172.16.16.137:61613', 'foo', 'bar');
+  $y = new DrupalMessageQueueStompBroker('tcp://localhost:61612');
+  $x->addBroker($y);
+
+  return $x;
+}
+
+
+
+
+
+/**
+ * Load a single messagequeue pool.
+ *
+ * @param String $machine_name
+ * The machine name of the pool to load.
+ *
+ * @return
+ * A DrupalMessageQueuePool object.
+ */
+function messagequeue_pool_load($machine_name) {
+  // Use CTools export API to fetch this pool.
+  ctools_include('export');
+  $result = ctools_export_load_object('messagequeue_pool', 'names', array($machine_name));
+
+  // Transform the DB structures to a DrupalMessageQueuePool object.
+  array_walk($result, '_messagequeue_pool_constructor');
+
+  if (isset($result[$machine_name])) {
+    return $result[$machine_name];
+  }
+}
+
+/**
+ * Load all messagequeue pools.
+ *
+ * @return Array
+ * An array of DrupalMessageQueuePool objects, keyed by the machine name of
+ * each pool.
+ */
+function messagequeue_pool_load_all() {
+  // Use CTools export API to fetch this pool.
+  ctools_include('export');
+  $result = ctools_export_load_object('messagequeue_pool', 'all');
+
+  // Transform the DB structures to a DrupalMessageQueuePool object.
+  array_walk($result, '_messagequeue_pool_constructor');
+
+  return $result;
+}
+
+/**
+ * Array iterator to parse pool data structured as a DB result and convert to a
+ * DrupalMessageQueuePool object.
+ */
+function _messagequeue_pool_constructor(&$data) {
+  $pool = new DrupalMessageQueuePool;
+  $pool->machine_name = $data->machine_name;
+  $pool->description  = $data->description;
+  $pool->distribution = $data->distribution;
+
+  foreach(unserialize($data->brokers) as $broker) {
+    $broker = unserialize($broker);
+    $pool->addBroker($broker);
+  }
+  $data = $pool;
+}
+
+
+/**
+ * Save a single message queue pool to the DB.
+ *
+ * @param DrupalMessageQueuePool $pool
+ * The pool object.
+ */
+function messagequeue_pool_save(DrupalMessageQueuePool $pool) {
+  drupal_set_message('saving pool.');
+  $brokers = array();
+  foreach ($pool->getBrokers() as $broker) {
+    $brokers[] = serialize($broker);
+  }
+
+  db_merge('messagequeue_pool')
+    ->key(array('machine_name' => $pool->machine_name))
+    ->fields(array(
+      'description'  => $pool->description,
+      'distribution' => $pool->distribution,
+      'brokers'      => serialize($brokers),
+    ))
+    ->execute();
+}
+

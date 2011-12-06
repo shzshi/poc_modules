@@ -1,0 +1,86 @@
+<?php
+/**
+ * @file
+ * Install file for Message Queue module.
+ * Provides hook_requirements to test the presence of the STOMP extension.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function messagequeue_requirements() {
+  $requirements = array();
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_schema().
+ */
+function messagequeue_schema() {
+  $schema = array();
+  $schema['messagequeue_pool'] = array(
+    'description' => t('Message queue pool and broker definitions.'),
+
+    'export' => array(
+      'key' => 'machine_name',
+      'key name' => 'Machine name',
+//      'object factory' => 'messagequeue_pool_factory',  // Use this factory when loading data.
+
+      'cache defaults' => TRUE,                         // Cache exported data.
+      'identifier' => 'pool',                           // Exported data will appear as $pools.
+      'default hook' => 'messagequeue_default_pools',   // Pools in-code are declared using this hook.
+      'api' => array(
+        'owner' => 'messagequeue',
+        'api' => 'messagequeue_default_pools',          // Pools can be stored in-code in foo.messagequeue_default_pools.inc.
+        'minimum_version' => 1,
+        'current_version' => 1,
+      ),
+
+      // Ctools callbacks.
+      'load callback' => 'messagequeue_pool_load',      // Use this function to load pools (optional).
+      // Replace ctools_export_object().
+      // 'export callback' => 'messagequeue_pool_export',  // Transform the DrupalMessageQueuePool to something exportable.
+    ),
+
+    'fields' => array(
+      'machine_name' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'Machine name for each pool. Used to identify them programmatically.',
+      ),
+      'pid' => array(
+        'description' => 'Primary ID field for the table. Not used for anything except internal lookups.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'no export' => TRUE, // Do not export database-only keys.
+      ),
+      'description' => array(
+        'description' => 'A human readable description of a pool.',
+        'type' => 'varchar',
+        'default' => '',
+        'length' => '255',
+      ),
+      'distribution' => array(
+        'description' => 'How requests should be distributed amongst brokers in the pool.',
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+      ),
+      'brokers' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'A serialized array of message broker data.',
+        'serializable' => TRUE,
+      ),
+    ),
+    'primary key' => array('pid'),
+    'unique keys' => array(
+      'machine_name' => array('machine_name'),
+    ),
+  );
+  return $schema;
+}
+
