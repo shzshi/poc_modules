@@ -1,0 +1,6 @@
+name = Eurostar Datacash Payment 
+description = Provides payment to datacash.
+package = Commerce
+dependencies[] = commerce
+dependencies[] = commerce_payment
+core = 7.x
